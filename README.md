@@ -114,6 +114,8 @@ Authenticate your HuggingFace Token:
 
 Paste your token when prompted. This saves it for all your local Python/HF code
 
+Download the Models from : https://drive.google.com/drive/folders/1VOfVzRaoaNKw1rYq6nvuWkskQ8vcZ38p?usp=sharing
+
 
 ### 3. Directory Structure
 
