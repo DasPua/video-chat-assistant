@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisionAI - Enhanced Chat & Video</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #ec4899;
+      --accent: #06b6d4;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --text-light: #f8fafc;
+      --text-muted: #cbd5e1;
+      --text-dim: #94a3b8;
+      --bg-dark: #0f0f23;
+      --bg-secondary: #1e1b4b;
+      --bg-card: #1e293b;
+      --panel-bg: #262833;
+      --panel-alt: #2e3140;
+      --gradient-1: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+      --gradient-2: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #6366f1 100%);
+      --gradient-3: linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%);
+      --shadow-glow: 0 20px 60px rgba(99, 102, 241, 0.4);
+      --shadow-hover: 0 30px 80px rgba(99, 102, 241, 0.6);
+      --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    *, *::before, *::after { 
+      box-sizing: border-box; 
+    }
+
+    body {
+      margin: 0; 
+      padding: 0;
+      height: 100vh; 
+      width: 100vw;
+      overflow: hidden;
+      font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-secondary) 100%);
+      color: var(--text-light);
+    }
+
+    #app {
+      display: flex;
+      width: 100vw; 
+      height: 100vh;
+      background: var(--bg-secondary);
+      position: relative;
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid var(--panel-bg);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Video Panel */
+    #videoPanel {
+      flex: 0 0 400px;
+      background: var(--panel-bg);
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(255,255,255,0.1);
+      transition: flex-basis 0.3s ease;
+    }
+
+    .panel-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: linear-gradient(135deg, var(--panel-bg) 0%, var(--panel-alt) 100%);
+    }
+
+    .panel-header h2 {
+      font-size: 1.4rem;
+      margin: 0;
+      text-align: center;
+      color: var(--secondary);
+      font-weight: 600;
+    }
+
+    .video-content {
+      flex: 1;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+    }
+
+    #uploadLabel {
+      background: var(--gradient-1);
+      color: #fff;
+      padding: 1rem;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: 2px dashed transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #uploadLabel::before {
+      content: '';
+      position: absolute;
+      top: -2px; left: -2px; right: -2px; bottom: -2px;
+      background: var(--gradient-2);
+      border-radius: 12px;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #uploadLabel:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-glow);
+    }
+
+    #uploadLabel:hover::before {
+      opacity: 1;
+    }
+
+    #uploadLabel.drag-over {
+      border-color: var(--success);
+      background: var(--gradient-3);
+      transform: scale(1.02);
+    }
+
+    #uploadLabel.uploading {
+      background: var(--gradient-2);
+      cursor: not-allowed;
+    }
+
+    #fileInput { 
+      display: none; 
+    }
+
+    #videoPreview {
+      background: #000;
+      border-radius: 12px;
+      width: 100%;
+      max-height: 250px;
+      object-fit: contain;
+      display: none;
+      box-shadow: var(--shadow-card);
+    }
+
+    #filesList {
+      display: flex; 
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .file-item {
+      background: var(--gradient-1);
+      color: #fff;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      animation: slideInLeft 0.3s ease-out;
+    }
+
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .file-remove { 
+      cursor: pointer; 
+      font-weight: bold; 
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      transition: background 0.2s ease;
+    }
+
+    .file-remove:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .file-info {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+    }
+
+    /* Chat Panel */
+    #chatPanel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--panel-alt);
+      min-width: 0;
+    }
+
+    #chatHeader {
+      display: flex; 
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, var(--panel-bg) 0%, var(--panel-alt) 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      box-shadow: var(--shadow-card);
+    }
+
+    #chatHeader h3 {
+      margin: 0; 
+      font-size: 1.4rem; 
+      color: var(--secondary);
+      font-weight: 600;
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .control-btn {
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.1);
+      color: var(--text-light);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.9rem;
+    }
+
+    .control-btn:hover { 
+      background: rgba(255,255,255,0.2); 
+      transform: translateY(-1px);
+    }
+
+    #chatWindow {
+      flex: 1; 
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex; 
+      flex-direction: column; 
+      gap: 1rem;
+      background: var(--panel-alt);
+      scroll-behavior: smooth;
+    }
+
+    #chatWindow::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #chatWindow::-webkit-scrollbar-track {
+      background: var(--panel-bg);
+      border-radius: 3px;
+    }
+
+    #chatWindow::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 3px;
+    }
+
+    .message {
+      max-width: 75%; 
+      padding: 1rem 1.25rem;
+      border-radius: 16px;
+      word-wrap: break-word; 
+      white-space: pre-wrap;
+      position: relative;
+      animation: messageSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow-card);
+    }
+
+    @keyframes messageSlide { 
+      from { opacity: 0; transform: translateY(15px) scale(0.95); } 
+      to { opacity: 1; transform: translateY(0) scale(1); } 
+    }
+
+    .user {
+      align-self: flex-end;
+      background: var(--gradient-1);
+      color: #fff;
+      margin-left: auto;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background: var(--panel-bg);
+      color: var(--text-light);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .error {
+      align-self: flex-start;
+      background: linear-gradient(135deg, var(--error), #dc2626);
+      color: #fff;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .message-time {
+      font-size: 0.75rem;
+      opacity: 0.7;
+      margin-top: 0.5rem;
+      display: block;
+    }
+
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      background: var(--panel-bg);
+      border-radius: 16px;
+      max-width: 100px;
+      align-self: flex-start;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 2px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: typingBounce 1.4s ease-in-out infinite both;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes typingBounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
+    #inputArea {
+      display: flex; 
+      align-items: center;
+      padding: 1.5rem; 
+      background: var(--panel-bg);
+      gap: 1rem; 
+      border-top: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+
+    #messageInput {
+      flex: 1; 
+      padding: 1rem 1.25rem;
+      border-radius: 25px; 
+      border: 2px solid transparent;
+      background: var(--bg-secondary);
+      color: var(--text-light);
+      font-size: 1rem; 
+      outline: none;
+      transition: all 0.3s ease;
+      resize: none;
+      min-height: 50px;
+      max-height: 120px;
+    }
+
+    #messageInput:focus { 
+      background: var(--panel-alt); 
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    #messageInput::placeholder {
+      color: var(--text-dim);
+    }
+
+    #sendButton {
+      background: var(--gradient-1);
+      border: none; 
+      border-radius: 50%;
+      color: #fff; 
+      font-size: 1.2rem;
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-glow);
+    }
+
+    #sendButton:hover:not(:disabled) { 
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: var(--shadow-hover);
+    }
+
+    #sendButton:disabled { 
+      background: #555; 
+      cursor: not-allowed; 
+      transform: none;
+      box-shadow: none;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      text-align: center;
+      gap: 1rem;
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      opacity: 0.5;
+    }
+
+    /* Toast notifications */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 500;
+      z-index: 1000;
+      animation: toastSlide 0.3s ease-out;
+      max-width: 300px;
+    }
+
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--error); }
+    .toast.warning { background: var(--warning); }
+
+    @keyframes toastSlide {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+      #videoPanel { flex-basis: 350px; }
+    }
+
+    @media (max-width: 900px) {
+      #app { flex-direction: column; }
+      #videoPanel { 
+        flex-basis: auto;
+        height: 40vh;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+      }
+      #chatPanel { height: 60vh; }
+      .message { max-width: 85%; }
+    }
+
+    @media (max-width: 600px) {
+      .panel-header, #chatHeader, #inputArea { padding: 1rem; }
+      .video-content, #chatWindow { padding: 1rem; }
+      #videoPanel { height: 35vh; }
+      #chatPanel { height: 65vh; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="videoPanel">
+      <div class="panel-header">
+        <h2>📹 Video Upload & Preview</h2>
+      </div>
+      <div class="video-content">
+        <label id="uploadLabel" for="fileInput">
+          📁 Drop video here or click to select
+        </label>
+        <input type="file" id="fileInput" accept="video/*" />
+        <video id="videoPreview" controls></video>
+        <div id="filesList"></div>
+        <div class="file-info" id="fileInfo"></div>
+      </div>
+    </div>
+
+    <div id="chatPanel">
+      <div id="chatHeader">
+        <h3>🤖 VisionAI Assistant</h3>
+        <div class="header-controls">
+          <button class="control-btn" onclick="clearChat()">🗑️ Clear</button>
+          <button class="control-btn" onclick="goHome()">🏠 Home</button>
+        </div>
+      </div>
+      <div id="chatWindow">
+        <div class="empty-state">
+          <div class="empty-icon">💬</div>
+          <h3>Welcome to VisionAI!</h3>
+          <p>Upload a video and start asking questions about it.</p>
+        </div>
+      </div>
+      <div id="inputArea">
+        <textarea id="messageInput" placeholder="Ask about your video..." rows="1"></textarea>
+        <button id="sendButton" disabled>
+          <span>➤</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global state management
+    const state = {
+      videoFile: null,
+      filePath: null,
+      isProcessing: false,
+      messages: []
+    };
+
+    // DOM elements
+    const elements = {
+      fileInput: document.getElementById('fileInput'),
+      videoPreview: document.getElementById('videoPreview'),
+      filesList: document.getElementById('filesList'),
+      fileInfo: document.getElementById('fileInfo'),
+      messageInput: document.getElementById('messageInput'),
+      sendButton: document.getElementById('sendButton'),
+      chatWindow: document.getElementById('chatWindow'),
+      uploadLabel: document.getElementById('uploadLabel'),
+      loadingOverlay: document.getElementById('loadingOverlay')
+    };
+
+    // Utility functions
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 3000);
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function getCurrentTime() {
+      return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Video handling
+    async function handleFileSelect(file) {
+      if (!file) return;
+      
+      if (!file.type.startsWith('video/')) {
+        showToast('Please select a valid video file', 'error');
+        return;
+      }
+
+      if (file.size > 500 * 1024 * 1024) { // 500MB limit
+        showToast('File size too large. Please select a file under 500MB', 'error');
+        return;
+      }
+
+      try {
+        state.videoFile = file;
+        elements.uploadLabel.classList.add('uploading');
+        elements.uploadLabel.textContent = 'Uploading...';
+        showLoading();
+
+        // Upload file to server
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/upload_file', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to upload file');
+        }
+
+        const result = await response.json();
+        state.filePath = result.file_path;
+
+        // Create object URL for preview
+        if (elements.videoPreview.src) {
+          URL.revokeObjectURL(elements.videoPreview.src);
+        }
+        
+        elements.videoPreview.src = URL.createObjectURL(file);
+        elements.videoPreview.style.display = 'block';
+
+        // Update file list
+        elements.filesList.innerHTML = `
+          <div class="file-item">
+            <span>📹 ${file.name}</span>
+            <span class="file-remove" onclick="removeVideo()">×</span>
+          </div>
+        `;
+
+        // Update file info
+        elements.fileInfo.innerHTML = `
+          <strong>File Info:</strong><br>
+          Size: ${formatFileSize(file.size)}<br>
+          Type: ${file.type}<br>
+          Status: ✅ Uploaded successfully
+        `;
+
+        updateSendButton();
+        removeEmptyState();
+        showToast('Video uploaded successfully!');
+        
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        showToast('Error uploading video: ' + error.message, 'error');
+        state.videoFile = null;
+        state.filePath = null;
+      } finally {
+        hideLoading();
+        elements.uploadLabel.classList.remove('uploading');
+        elements.uploadLabel.textContent = '📁 Drop video here or click to select';
+      }
+    }
+
+    function removeVideo() {
+      try {
+        if (elements.videoPreview.src) {
+          URL.revokeObjectURL(elements.videoPreview.src);
+        }
+        
+        state.videoFile = null;
+        state.filePath = null;
+        elements.videoPreview.style.display = 'none';
+        elements.videoPreview.src = '';
+        elements.filesList.innerHTML = '';
+        elements.fileInfo.innerHTML = '';
+        elements.fileInput.value = '';
+        
+        updateSendButton();
+        showToast('Video removed');
+      } catch (error) {
+        console.error('Error removing video:', error);
+      }
+    }
+
+    // Chat functions
+    function removeEmptyState() {
+      const emptyState = elements.chatWindow.querySelector('.empty-state');
+      if (emptyState) {
+        emptyState.remove();
+      }
+    }
+
+    function appendMessage(sender, text, showTime = true) {
+      removeEmptyState();
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${sender}`;
+      
+      const content = document.createElement('div');
+      content.textContent = text;
+      messageDiv.appendChild(content);
+      
+      if (showTime) {
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'message-time';
+        timeSpan.textContent = getCurrentTime();
+        messageDiv.appendChild(timeSpan);
+      }
+      
+      elements.chatWindow.appendChild(messageDiv);
+      elements.chatWindow.scrollTop = elements.chatWindow.scrollHeight;
+      
+      // Store message
+      state.messages.push({ sender, text, time: getCurrentTime() });
+    }
+
+    function showTypingIndicator() {
+      const indicator = document.createElement('div');
+      indicator.className = 'typing-indicator';
+      indicator.id = 'typingIndicator';
+      indicator.innerHTML = `
+        <div class="typing-dots">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      `;
+      elements.chatWindow.appendChild(indicator);
+      elements.chatWindow.scrollTop = elements.chatWindow.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      const indicator = document.getElementById('typingIndicator');
+      if (indicator) {
+        indicator.remove();
+      }
+    }
+
+    function showLoading() {
+      elements.loadingOverlay.style.display = 'flex';
+    }
+
+    function hideLoading() {
+      elements.loadingOverlay.style.display = 'none';
+    }
+
+    function updateSendButton() {
+      const hasInput = elements.messageInput.value.trim().length > 0;
+      elements.sendButton.disabled = !hasInput || state.isProcessing;
+    }
+
+    async function sendMessage() {
+      if (state.isProcessing) return;
+      
+      const messageText = elements.messageInput.value.trim();
+      
+      if (!messageText) {
+        showToast('Please enter a message', 'warning');
+        return;
+      }
+
+      try {
+        state.isProcessing = true;
+        updateSendButton();
+
+        // Add user message
+        appendMessage('user', messageText);
+        
+        // Clear input
+        elements.messageInput.value = '';
+        elements.messageInput.style.height = 'auto';
+
+        // Show typing indicator
+        showTypingIndicator();
+
+        // Send to backend
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: messageText,
+            file_path: state.filePath
+          })
+        });
+
+        hideTypingIndicator();
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        appendMessage('bot', result.response);
+
+      } catch (error) {
+        console.error('Error sending message:', error);
+        hideTypingIndicator();
+        appendMessage('error', `Error: ${error.message}`);
+        showToast('Error sending message. Please try again.', 'error');
+      } finally {
+        state.isProcessing = false;
+        updateSendButton();
+      }
+    }
+
+    // UI functions
+    function clearChat() {
+      if (confirm('Are you sure you want to clear the chat history?')) {
+        elements.chatWindow.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">💬</div>
+            <h3>Chat cleared!</h3>
+            <p>Upload a video and start asking questions about it.</p>
+          </div>
+        `;
+        state.messages = [];
+        showToast('Chat cleared');
+      }
+    }
+
+    function goHome() {
+      if (confirm('Are you sure you want to go back to home?')) {
+        window.location.href = '/';
+      }
+    }
+
+    // Auto-resize textarea
+    function autoResizeTextarea() {
+      elements.messageInput.style.height = 'auto';
+      elements.messageInput.style.height = Math.min(elements.messageInput.scrollHeight, 120) + 'px';
+    }
+
+    // Event listeners
+    elements.fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        handleFileSelect(file);
+      }
+    });
+
+    // Drag and drop functionality
+    elements.uploadLabel.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      elements.uploadLabel.classList.add('drag-over');
+    });
+
+    elements.uploadLabel.addEventListener('dragleave', () => {
+      elements.uploadLabel.classList.remove('drag-over');
+    });
+
+    elements.uploadLabel.addEventListener('drop', (e) => {
+      e.preventDefault();
+      elements.uploadLabel.classList.remove('drag-over');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFileSelect(files[0]);
+      }
+    });
+
+    elements.messageInput.addEventListener('input', () => {
+      updateSendButton();
+      autoResizeTextarea();
+    });
+
+    elements.messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!elements.sendButton.disabled) {
+          sendMessage();
+        }
+      }
+    });
+
+    elements.sendButton.addEventListener('click', sendMessage);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (elements.videoPreview.src) {
+        URL.revokeObjectURL(elements.videoPreview.src);
+      }
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      updateSendButton();
+      elements.messageInput.focus();
+      console.log('VisionAI Chat Interface - Ready!');
+    });
+
+    // Error handling
+    window.addEventListener('error', (e) => {
+      console.error('Global error:', e.error);
+      hideLoading();
+      hideTypingIndicator();
+      state.isProcessing = false;
+      updateSendButton();
+    });
+  </script>
+</body>
+</html>
