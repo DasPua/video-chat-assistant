@@ -1,0 +1,1 @@
+from .event_detector import detection_node
