@@ -106,6 +106,14 @@ Flask
 
 pip install https://github.com/openai/CLIP/archive/refs/heads/main.zip
 
+Authenticate your HuggingFace Token:
+
+1.In your terminal (Anaconda prompt, VSCode terminal, etc.), simply run:
+
+``` huggingface-cli login ```
+
+Paste your token when prompted. This saves it for all your local Python/HF code
+
 
 ### 3. Directory Structure
 
