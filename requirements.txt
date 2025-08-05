@@ -1,0 +1,17 @@
+langchain
+langgraph
+langchain-community
+huggingface_hub
+opencv-python
+transformers
+torch
+pillow
+Torchvision
+num2words
+av
+langchain_huggingface
+grandalf
+ultralytics
+clip
+flask
+
