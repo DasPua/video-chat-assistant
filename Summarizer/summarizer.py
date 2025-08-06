@@ -51,10 +51,11 @@ def summarizer_node(state: BaseMessages, model_path=model_path) -> BaseMessages:
         skip_special_tokens=True,
     )
 
-    frame_data = {f'{1}': generated_texts[0].split("Assistant: ")[-1].strip()}
+    frame_data = generated_texts[0].split("Assistant: ")[-1].strip()
     print("The video summary is as follows:", frame_data)
     final_response.append(frame_data)
     state["video_context"].append(final_response)
+    state["need_summarizer"] = 0 
     state['need_events'] = 1
     return state
 
