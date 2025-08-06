@@ -15,7 +15,6 @@ from langchain_core.prompts import HumanMessagePromptTemplate, ChatPromptTemplat
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"🖥 Using device: {device.upper()}")
 
-
 # === YOLO-WORLD ===
 class YOLOWorldDetector:
     def __init__(self, model_size='s'):
@@ -46,7 +45,6 @@ class YOLOWorldDetector:
                         })
         return detections
 
-
 # === OWL-ViT ===
 class OWLViTDetector:
     def __init__(self):
@@ -74,7 +72,6 @@ class OWLViTDetector:
                 'source': 'OWL'
             })
         return detections
-
 
 # === UNIVERSAL DETECTOR ===
 class UniversalObjectDetector:
@@ -182,8 +179,13 @@ class UniversalObjectDetector:
 
 model_repo = "meta-llama/Llama-3.2-3B-Instruct"
 
-def detection_node(state: BaseMessages, model_repo = model_repo)->BaseMessages:
+def detection_node(state: BaseMessages, model_repo=model_repo) -> BaseMessages:
+    """
+    Detection node that uses video_context from state to extract object-action pairs
+    and then processes the video accordingly.
+    """
     print("entering the detection node")
+    # Initialize LLM
     llm = HuggingFaceEndpoint(
         repo_id=model_repo,
         task="text-generation",
@@ -191,35 +193,33 @@ def detection_node(state: BaseMessages, model_repo = model_repo)->BaseMessages:
     )
     llm = ChatHuggingFace(llm=llm)
 
-    messages = [
-    SystemMessage(
-        content=("""you are an intelligent agent that identifies objects and action from user's input.
-                 You will be given a sentence and you have to identify the objects and actions and return the ouput in comma separated values. Here is an example given below:
-                 Example : 
-                 input : can you find the when the aeroplane is flying and the dog is running ?
-                 output : aeroplane flying, dog running
-                 
-                 If there is no action for a object then only return the object.
-                 Example : 
-                 input : is there a truck and cat in the video?
-                 output : truck,cat
-                 Only return the output in the above mentioned format and do not return anything else and no special words like None.""")
-    ),
-    HumanMessagePromptTemplate.from_template("{user_query}")
-]
+    # Prepare prompts using video_context instead of user history
+    video_context_list = state.get("video_context", [])
+    context_text = " ".join([ctx for sublist in video_context_list for ctx in sublist])
 
-    prompt = ChatPromptTemplate.from_messages(messages)
-    responder_chain = prompt | llm
+    system_prompt = SystemMessage(
+        content=(
+            "You are an intelligent agent that identifies object-action pairs from a video description.\n"
+            "You will be given a video context description, and you must return the output as comma-separated values in the format 'object action'.\n"
+            "If an object has no specific action, return only the object.\n"
+            "Only return the output in the specified format, without any additional words."
+        )
+    )
+    human_template = HumanMessagePromptTemplate.from_template("{video_description}")
+    prompt = ChatPromptTemplate.from_messages([system_prompt, human_template])
 
-    last_user_query = state["history"][-1].content
-    response_obj = responder_chain.invoke({"user_query": last_user_query})
-    text = response_obj.content if hasattr(response_obj, "content") else str(response_obj)
-    print("checking : ", text)
-    user_cmd = text
-    vid_path  = state["video_path"]
-    detector  = UniversalObjectDetector(use_owl=True)
-    plan      = detector.parse_input(user_cmd)
-    events    = detector.process_video(vid_path, plan)
+    # Invoke LLM to extract object-action pairs
+    response_obj = (prompt | llm).invoke({"video_description": context_text})
+    user_cmd = response_obj.content if hasattr(response_obj, "content") else str(response_obj)
+    print("Extracted object-action pairs:", user_cmd)
+
+    # Parse pairs and run detection
+    vid_path = state.get("video_path")
+    detector = UniversalObjectDetector(use_owl=True)
+    plan = detector.parse_input(user_cmd)
+    events = detector.process_video(vid_path, plan)
+
+    # Update state
     state["events"].append(events)
-    print("the events that have occurred so far are:", state['events'])
+    print("The events that have occurred so far are:", state['events'])
     return state
