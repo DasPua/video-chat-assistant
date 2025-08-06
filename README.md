@@ -9,7 +9,7 @@ A **multimodal conversational AI assistant** that lets users upload video files 
 - **Chat conversationally about video scenes, objects, and events** with memory across turns.
 - **Modern chat UI** for seamless multimodal interaction.
 
-Demo Video: https://drive.google.com/file/d/15fNnrsgh3f2WLBPPPkJ3B2oVD0sQBLQ4/view?usp=sharing
+Demo Video: https://drive.google.com/drive/folders/10Ocx-hkoSIVfmHFCHG0onN9G6WLTIwaz?usp=sharing
 
 ## Architecture Diagram
 
