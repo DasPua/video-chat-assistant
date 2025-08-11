@@ -1,4 +1,4 @@
-# Video Chat Assistant
+# Video-Chat-Assistant
 
 A **multimodal conversational AI assistant** that lets users upload video files and engage in multi-turn conversations about video content. The system analyzes, summarizes, and supports both event-based and general discussions using advanced language and visual understanding modules.
 
