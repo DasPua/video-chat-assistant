@@ -1,3 +1,4 @@
+gunicorn
 langchain
 langgraph
 langchain-community
@@ -24,4 +25,5 @@ bitsandbytes==0.41.0
 sentencepiece
 einops 
 flash_attn 
+
 timm
