@@ -26,5 +26,6 @@ sentencepiece
 einops 
 flash_attn 
 
-timm
+# timm
+
 
