@@ -4,14 +4,24 @@ langchain-community
 huggingface_hub
 opencv-python
 transformers
-torch
 pillow
-Torchvision
+torch==2.7.0
+torchvision==0.22.0
+torchaudio==2.7.0
+--extra-index-url https://download.pytorch.org/whl/cu126
 num2words
 av
 langchain_huggingface
 grandalf
 ultralytics
-clip
-flask
 
+flask
+https://github.com/openai/CLIP/archive/refs/heads/main.zip
+accelerate
+ffmpeg-python
+moviepy
+bitsandbytes==0.41.0
+sentencepiece
+einops 
+flash_attn 
+timm
