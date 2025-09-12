@@ -6,10 +6,10 @@ huggingface_hub
 opencv-python
 transformers
 pillow
-torch==2.7.0
-torchvision==0.22.0
-torchaudio==2.7.0
---extra-index-url https://download.pytorch.org/whl/cu126
+# torch==2.7.0
+# torchvision==0.22.0
+# torchaudio==2.7.0
+# --extra-index-url https://download.pytorch.org/whl/cu126
 num2words
 av
 langchain_huggingface
@@ -27,3 +27,4 @@ einops
 flash_attn 
 
 timm
+
